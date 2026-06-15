@@ -19,10 +19,8 @@ let supabase = null;
 
 if (supabaseUrl && supabaseKey) {
   try {
-    // 確保已下載 Supabase JS SDK 後才初始化
-    if (typeof supabase !== 'undefined' && supabase.createClient) {
-      supabase = supabase.createClient(supabaseUrl, supabaseKey);
-    } else if (window.supabase && window.supabase.createClient) {
+    // 優先檢查由 CDN 載入的 window.supabase
+    if (window.supabase && window.supabase.createClient) {
       supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
     }
   } catch (e) {

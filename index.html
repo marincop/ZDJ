@@ -331,7 +331,75 @@
           <input type="tel" id="lookupPhone" class="input-text" placeholder="請輸入訂位手機號碼" style="flex:1;">
           <button class="submit-btn" style="width:auto; margin:0; padding:0 20px;" onclick="runBookingLookup()">查詢</button>
         </div>
-      <    // --- 初始化首頁 ---
+      </div>
+
+      <div id="lookupResults" style="margin-top: 15px; display:flex; flex-direction:column; gap:12px;">
+        <!-- 查詢結果渲染在此 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 4：管理者登入彈窗 -->
+  <div class="modal-overlay" id="adminLoginModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">管理者登入</h3>
+        <button class="modal-close" onclick="closeModal('adminLoginModal')">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="adminPass">請輸入管理密碼</label>
+        <input type="password" id="adminPass" class="input-text" placeholder="請輸入登入密碼">
+        <p class="hint-text" style="color: var(--text-light)">預設登入密碼為：admin888</p>
+      </div>
+
+      <div id="loginErrorMsg" style="color: var(--error-color); font-size:13px; margin-bottom: 12px; display:none;">
+        密碼不正確，請重新輸入！
+      </div>
+
+      <button class="submit-btn" onclick="submitAdminLogin()">登入系統</button>
+    </div>
+  </div>
+
+  <!-- 彈窗 5：模擬分享彈窗 -->
+  <div class="modal-overlay" id="shareModal">
+    <div class="modal-content" style="text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title">分享「蘇記嘀兜雞/中和環球概念店」</h3>
+        <button class="modal-close" onclick="closeModal('shareModal')">&times;</button>
+      </div>
+      <p style="margin-bottom: 20px; color: var(--text-muted);">複製下方訂位連結，傳送給親朋好友：</p>
+      <input type="text" class="input-text" id="shareUrlInput" value="" readonly style="text-align:center; font-size:13px; margin-bottom: 20px;">
+      <button class="submit-btn" onclick="copyShareLink()">複製連結</button>
+    </div>
+  </div>
+
+  <script>
+    // --- 輪播控制 ---
+    let activeSlide = 0;
+    function setSlide(index) {
+      activeSlide = index;
+      const slides = document.getElementById("carouselSlides");
+      slides.style.transform = `translateX(-${index * 50}%)`;
+      
+      const dots = document.querySelectorAll(".carousel-dot");
+      dots.forEach((dot, idx) => {
+        if (idx === index) dot.classList.add("active");
+        else dot.classList.remove("active");
+      });
+    }
+    
+    // 自動輪播
+    setInterval(() => {
+      setSlide(activeSlide === 0 ? 1 : 0);
+    }, 6000);
+
+    // --- 全域變數 ---
+    let selectedDate = "";
+    let selectedTime = "";
+    let currentTab = "all"; // all, lunch, dinner
+
+    // --- 初始化首頁 ---
     window.addEventListener("DOMContentLoaded", async () => {
       // 1. 初始化日期選單（提供未來的 30 天可預約）
       await initDateDropdown();
