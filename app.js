@@ -12,9 +12,9 @@ const DEFAULT_SETTINGS = {
   ]
 };
 
-// 1. 初始化 Supabase 用戶端 (安全地從 localStorage 讀取)
-const supabaseUrl = localStorage.getItem("suji_supabase_url") || "";
-const supabaseKey = localStorage.getItem("suji_supabase_key") || "";
+// 1. 初始化 Supabase 用戶端 (安全地從 localStorage 讀取，並設定您的專案為預設值)
+const supabaseUrl = localStorage.getItem("suji_supabase_url") || "https://veoklrkrucgejbscmivy.supabase.co";
+const supabaseKey = localStorage.getItem("suji_supabase_key") || "sb_publishable_DPg8x_cU4HENRis8v4GpYA_yw6FFmSl";
 let supabase = null;
 
 if (supabaseUrl && supabaseKey) {
