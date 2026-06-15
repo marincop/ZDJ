@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>蘇記豬肚雞 - 商家管理後台</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js"></script>
+</head>
+<body class="admin-body">
+
+  <!-- 登入鎖定畫面 (若無 session 則顯示) -->
+  <div class="lock-screen" id="adminLockScreen" style="display: none;">
+    <div class="lock-card">
+      <div class="lock-logo">
+        <img src="assets/logo.jpg" alt="蘇記豬肚雞 Logo">
+      </div>
+      <h2>蘇記豬肚雞 管理系統</h2>
+      <p>請輸入管理員密碼以存取後台</p>
+      
+      <div class="form-group" style="text-align: left;">
+        <input type="password" id="lockPass" class="input-text" placeholder="請輸入密碼">
+        <p class="hint-text" style="color:var(--text-light)">預設密碼為：admin888</p>
+      </div>
+      
+      <div id="lockErrorMsg" style="color: var(--error-color); font-size:13px; margin-bottom: 15px; display:none;">
+        密碼不正確！
+      </div>
+      
+      <button class="submit-btn" onclick="verifyLockPass()">解鎖並登入</button>
+      <button class="outline-btn" style="margin-top: 10px; font-size:13px;" onclick="window.location.href='index.html'">← 返回顧客訂位首頁</button>
+    </div>
+  </div>
+
+  <!-- 後台主內容區域 -->
+  <div id="adminMainContent">
+    
+    <!-- 頂部標題區 -->
+    <div class="admin-header">
+      <div class="admin-title-area">
+        <h1>蘇記豬肚雞 <span>商家後台</span></h1>
+        <p>訂位管理、營業時段與客容量設定系統</p>
+      </div>
+      <div class="admin-nav-actions">
+        <button class="week-btn" onclick="window.location.href='index.html'">
+          🌐 前往顧客前台
+        </button>
+        <button class="week-btn btn-danger" onclick="logoutAdmin()">
+          登出
+        </button>
+      </div>
+    </div>
+
+    <!-- 數據儀表板 KPI -->
+    <div class="kpis-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">今日預約筆數</div>
+        <div class="kpi-value" id="kpiTodayBookings">0 筆</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">今日預計用餐總人數</div>
+        <div class="kpi-value" id="kpiTodayGuests">0 人</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">本週累計訂位數</div>
+        <div class="kpi-value" id="kpiWeekBookings">0 筆</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">目前同時間容量上限</div>
+        <div class="kpi-value" style="display:flex; align-items:center; gap: 8px; justify-content:space-between;">
+          <span id="kpiMaxCapText">40 人</span>
+          <button class="btn-action" style="margin:0; padding:4px 8px; font-size:11px;" onclick="quickChangeCapacity()">修改</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 按週檢視區域 (核心需求) -->
+    <div class="admin-card">
+      <div class="week-navigator">
+        <button class="week-btn" onclick="navigateWeek(-1)">
+          ◀ 上一週
+        </button>
+        <div class="current-week-label" id="weekDateRangeLabel">
+          2026/06/15 - 2026/06/21
+        </div>
+        <button class="week-btn" onclick="navigateWeek(1)">
+          下一週 ▶
+        </button>
+      </div>
+
+      <!-- 7天日曆欄位 -->
+      <div class="weekly-days-grid" id="weeklyDaysGrid">
+        <!-- 週一至週日欄位將由 JS 動態生成 -->
+      </div>
+    </div>
+
+    <!-- 二欄式排版：左側為詳細清單與新增訂位，右側為時段與假期設定 -->
+    <div class="admin-grid-layout">
+      
+      <!-- 左側欄：詳細列表與手動訂位 -->
+      <div>
+        
+        <!-- 手動代客訂位 -->
+        <div class="admin-card">
+          <h2 class="section-title" style="font-size:16px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+            <span>📞 電話代客訂位 (新增預約)</span>
+          </h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="font-size:13px;">姓名*</label>
+              <input type="text" id="manualName" class="input-text" style="padding:8px 12px;" placeholder="姓名">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="font-size:13px;">手機號碼*</label>
+              <input type="tel" id="manualPhone" class="input-text" style="padding:8px 12px;" placeholder="手機">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="font-size:13px;">用餐日期*</label>
+              <input type="date" id="manualDate" class="input-text" style="padding:8px 12px;" onchange="updateManualTimeOptions()">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="font-size:13px;">時間*</label>
+              <select id="manualTime" class="input-text" style="padding:8px 12px;">
+                <!-- 動態載入時段 -->
+              </select>
+            </div>
+            <div class="form-group" style="margin:0; display:flex; gap: 8px;">
+              <div style="flex:1;">
+                <label class="form-label" style="font-size:13px;">大人*</label>
+                <select id="manualAdults" class="input-text" style="padding:8px 12px;">
+                  <option value="1">1人</option>
+                  <option value="2" selected>2人</option>
+                  <option value="3">3人</option>
+                  <option value="4">4人</option>
+                  <option value="5">5人</option>
+                  <option value="6">6人</option>
+                  <option value="8">8人</option>
+                  <option value="10">10人</option>
+                  <option value="12">12人</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <label class="form-label" style="font-size:13px;">小孩</label>
+                <select id="manualKids" class="input-text" style="padding:8px 12px;">
+                  <option value="0" selected>0人</option>
+                  <option value="1">1人</option>
+                  <option value="2">2人</option>
+                  <option value="3">3人</option>
+                  <option value="4">4人</option>
+                  <option value="6">6人</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap:12px; align-items: flex-end;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="font-size:13px;">Email 與備註事項 (選填)</label>
+              <input type="text" id="manualNotes" class="input-text" style="padding:8px 12px;" placeholder="例: email@test.com / 需要沙發座">
+            </div>
+            <button class="submit-btn" style="margin:0; padding:10px;" onclick="submitManualBooking()">送出電話預約</button>
+          </div>
+        </div>
+
+        <!-- 訂位詳細清單表格 -->
+        <div class="admin-card">
+          <h2 class="section-title" style="font-size:16px;">📋 所有訂位列表</h2>
+          
+          <!-- 搜尋篩選 -->
+          <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="searchKeyword" class="input-text" style="padding:8px 12px;" placeholder="輸入姓名或電話搜尋..." oninput="renderBookingsTable()">
+            <select id="filterStatus" class="input-text" style="padding:8px 12px; width: 140px;" onchange="renderBookingsTable()">
+              <option value="all">所有狀態</option>
+              <option value="Confirmed">已確認</option>
+              <option value="Seated">已入座</option>
+              <option value="Cancelled">已取消</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>編號</th>
+                  <th>日期 / 時間</th>
+                  <th>顧客名稱 / 電話</th>
+                  <th>人數</th>
+                  <th>狀態</th>
+                  <th>備註</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="bookingsTableBody">
+                <!-- 動態渲染 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 右側欄：設定控制面板 -->
+      <div>
+        
+        <!-- 客容量設定 -->
+        <div class="admin-card">
+          <h2 class="section-title" style="font-size:16px; margin-bottom:12px;">⚙️ 容額與密碼設定</h2>
+          <div class="form-group">
+            <label class="form-label" style="font-size:13px;">每時段最大預約承載人數 (預設40)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="number" id="settingsMaxCap" class="input-text" style="padding:8px 12px;" value="40" min="1">
+              <button class="submit-btn" style="width:auto; margin:0; padding:0 15px;" onclick="saveCapacitySetting()">儲存</button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size:13px;">管理者密碼修改</label>
+            <div style="display:flex; gap:8px;">
+              <input type="password" id="settingsPassword" class="input-text" style="padding:8px 12px;" placeholder="新管理密碼">
+              <button class="submit-btn" style="width:auto; margin:0; padding:0 15px;" onclick="savePasswordSetting()">更新</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 營業時段管理 (自訂時段) -->
+        <div class="admin-card">
+          <h2 class="section-title" style="font-size:16px; margin-bottom:12px;">🕒 預約時段彈性管理</h2>
+          
+          <div style="margin-bottom: 15px;">
+            <label class="form-label" style="font-size:13px; color:var(--primary-color);">中午用餐時段 (假日/週末限定)</label>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+              <input type="text" id="newLunchTime" class="input-text" style="padding:8px 12px;" placeholder="例如 12:15">
+              <button class="submit-btn" style="width:auto; margin:0; padding:0 15px;" onclick="addTimeSlot('lunch')">+ 新增</button>
+            </div>
+            <div id="lunchTimesList" style="display:flex; flex-wrap:wrap; gap:6px;">
+              <!-- 顯示時段徽章 -->
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size:13px; color:var(--primary-color);">晚上用餐時段 (每日營業)</label>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+              <input type="text" id="newDinnerTime" class="input-text" style="padding:8px 12px;" placeholder="例如 18:15">
+              <button class="submit-btn" style="width:auto; margin:0; padding:0 15px;" onclick="addTimeSlot('dinner')">+ 新增</button>
+            </div>
+            <div id="dinnerTimesList" style="display:flex; flex-wrap:wrap; gap:6px;">
+              <!-- 顯示時段徽章 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 自訂特殊假日管理 -->
+        <div class="admin-card">
+          <h2 class="section-title" style="font-size:16px; margin-bottom:12px;">📅 國定假日與店休設定</h2>
+          <p class="hint-text" style="margin-bottom:10px;">列於此處的日期，系統會比照「假日/週末」模式開放中午預約。</p>
+          
+          <div style="display:flex; gap:8px; margin-bottom:15px;">
+            <input type="date" id="newHolidayDate" class="input-text" style="padding:8px 12px;">
+            <button class="submit-btn" style="width:auto; margin:0; padding:0 15px;" onclick="addCustomHoliday()">+ 設為假日</button>
+          </div>
+          
+          <div id="holidaysList" style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto;">
+            <!-- 假日清單 -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- 彈窗：訂位詳細資訊卡片 -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">訂位詳細資訊</h3>
+        <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
+      </div>
+
+      <div class="booking-summary-box">
+        <div class="summary-row">
+          <span class="summary-label">訂位 ID</span>
+          <span class="summary-val" id="detailId" style="color:var(--primary-color);">BK123456</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">顧客姓名</span>
+          <span class="summary-val" id="detailName">陳大天</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">手機號碼</span>
+          <span class="summary-val" id="detailPhone">0912-345-678</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">電子郵件</span>
+          <span class="summary-val" id="detailEmail">-</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">用餐日期</span>
+          <span class="summary-val" id="detailDate">2026-06-15</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">預約時段</span>
+          <span class="summary-val" id="detailTime">18:00 (至 19:30)</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">預約人數</span>
+          <span class="summary-val" id="detailPeople">4 位 (4大人, 0小孩)</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">特殊要求</span>
+          <span class="summary-val" id="detailNotes" style="font-weight: normal; color: #b45309;">-</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">建立時間</span>
+          <span class="summary-val" id="detailCreated" style="font-weight:normal; font-size:12px; color:var(--text-light)">-</span>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; gap:10px;">
+          <button class="submit-btn" style="flex:1; background-color: var(--success-color); margin:0;" onclick="changeDetailStatus('Confirmed')">確認訂位</button>
+          <button class="submit-btn" style="flex:1; background-color: #3b82f6; margin:0;" onclick="changeDetailStatus('Seated')">標記為已入座</button>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="submit-btn" style="flex:1; background-color: var(--error-color); margin:0;" onclick="changeDetailStatus('Cancelled')">取消訂位</button>
+          <button class="submit-btn btn-danger" style="flex:1; background-color: transparent; border: 1px solid var(--error-color); margin:0;" onclick="deleteDetailBooking()">徹底刪除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 全域變數 ---
+    let currentWeekStart = new Date(); // 當週週一
+    let selectedBookingId = ""; // 當前在彈窗檢視的訂位 ID
+
+    // --- 安全驗證機制 (Mock Login) ---
+    window.addEventListener("DOMContentLoaded", () => {
+      checkAdminSession();
+    });
+
+    function checkAdminSession() {
+      const session = sessionStorage.getItem("suji_admin_session");
+      if (session === "logged_in") {
+        document.getElementById("adminLockScreen").style.display = "none";
+        document.getElementById("adminMainContent").style.display = "block";
+        initializeDashboard();
+      } else {
+        document.getElementById("adminLockScreen").style.display = "flex";
+        document.getElementById("adminMainContent").style.display = "none";
+        document.getElementById("lockPass").focus();
+      }
+    }
+
+    function verifyLockPass() {
+      const pass = document.getElementById("lockPass").value;
+      const settings = getSettings();
+      
+      if (pass === settings.adminPassword) {
+        sessionStorage.setItem("suji_admin_session", "logged_in");
+        document.getElementById("lockErrorMsg").style.display = "none";
+        checkAdminSession();
+      } else {
+        document.getElementById("lockErrorMsg").style.display = "block";
+      }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem("suji_admin_session");
+      window.location.reload();
+    }
+
+    // --- 儀表板初始化與渲染 ---
+    function initializeDashboard() {
+      // 1. 初始化客容量設定值
+      const settings = getSettings();
+      document.getElementById("settingsMaxCap").value = settings.maxCapacity;
+      document.getElementById("kpiMaxCapText").textContent = settings.maxCapacity + " 人";
+      
+      // 2. 設定代客訂位預設日期為今日
+      const todayStr = formatDate(new Date());
+      document.getElementById("manualDate").value = todayStr;
+      updateManualTimeOptions();
+
+      // 3. 設定目前週起點為今日所在週的週一
+      const days = getWeekDays(new Date());
+      currentWeekStart = days[0];
+
+      // 4. 渲染各個介面
+      renderAll();
+    }
+
+    function renderAll() {
+      renderKPIs();
+      renderWeeklyView();
+      renderBookingsTable();
+      renderTimeSettings();
+      renderHolidaysList();
+    }
+
+    // 渲染指標
+    function renderKPIs() {
+      const bookings = getBookings().filter(b => b.status !== "Cancelled");
+      const todayStr = formatDate(new Date());
+      
+      // 今日訂位與用餐人數
+      const todayBookings = bookings.filter(b => b.date === todayStr);
+      const todayGuestsSum = todayBookings.reduce((sum, b) => sum + b.totalGuests, 0);
+      
+      document.getElementById("kpiTodayBookings").textContent = `${todayBookings.length} 筆`;
+      document.getElementById("kpiTodayGuests").textContent = `${todayGuestsSum} 人`;
+
+      // 本週訂位 (從 currentWeekStart 到 currentWeekStart + 6 天)
+      const weekDates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(currentWeekStart);
+        d.setDate(currentWeekStart.getDate() + i);
+        weekDates.push(formatDate(d));
+      }
+      
+      const weekBookings = bookings.filter(b => weekDates.includes(b.date));
+      document.getElementById("kpiWeekBookings").textContent = `${weekBookings.length} 筆`;
+    }
+
+    // --- 按週瀏覽 (核心需求) ---
+    function navigateWeek(weeksDirection) {
+      currentWeekStart.setDate(currentWeekStart.getDate() + weeksDirection * 7);
+      renderWeeklyView();
+      renderKPIs();
+    }
+
+    function renderWeeklyView() {
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(currentWeekStart);
+        d.setDate(currentWeekStart.getDate() + i);
+        days.push(d);
+      }
+
+      // 設定週範圍標籤
+      const startStr = `${days[0].getFullYear()}/${String(days[0].getMonth()+1).padStart(2,'0')}/${String(days[0].getDate()).padStart(2,'0')}`;
+      const endStr = `${days[6].getFullYear()}/${String(days[6].getMonth()+1).padStart(2,'0')}/${String(days[6].getDate()).padStart(2,'0')}`;
+      document.getElementById("weekDateRangeLabel").textContent = `${startStr} ~ ${endStr}`;
+
+      const grid = document.getElementById("weeklyDaysGrid");
+      grid.innerHTML = "";
+
+      const allBookings = getBookings();
+      const weekDayNames = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"];
+
+      days.forEach((day, index) => {
+        const dateStr = formatDate(day);
+        const isHoliday = isWeekendOrHoliday(dateStr);
+        
+        // 篩選當日訂位 (排除已取消，但顯示其它的以方便安排桌次)
+        const dayBookings = allBookings.filter(b => b.date === dateStr && b.status !== "Cancelled");
+        // 按時間排序
+        dayBookings.sort((a,b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+
+        const dayCol = document.createElement("div");
+        dayCol.className = "day-column";
+        
+        const dayHeader = document.createElement("div");
+        dayHeader.className = "day-header";
+        
+        const dayName = document.createElement("div");
+        dayName.className = "day-name";
+        dayName.textContent = weekDayNames[index] + (isHoliday ? " (休/假)" : "");
+        
+        const dayDate = document.createElement("div");
+        dayDate.className = "day-date";
+        if (isHoliday) dayDate.classList.add("holiday");
+        dayDate.textContent = `${day.getMonth() + 1}/${day.getDate()}`;
+        
+        dayHeader.appendChild(dayName);
+        dayHeader.appendChild(dayDate);
+        dayCol.appendChild(dayHeader);
+
+        const listDiv = document.createElement("div");
+        listDiv.className = "day-bookings-list";
+
+        if (dayBookings.length === 0) {
+          listDiv.innerHTML = `<span style="text-align:center; font-size:11px; color:var(--text-light); margin-top:20px;">無預約</span>`;
+        } else {
+          dayBookings.forEach(bk => {
+            const card = document.createElement("div");
+            card.className = "mini-booking-card";
+            
+            // 入座或確認，給予不同邊線顏色
+            if (bk.status === "Seated") {
+              card.style.borderLeftColor = "var(--text-light)";
+              card.style.opacity = "0.7";
+            }
+            
+            card.innerHTML = `
+              <div class="mini-booking-time">${bk.time} (${bk.totalGuests}人)</div>
+              <div class="mini-booking-name">${bk.name}</div>
+            `;
+            
+            card.onclick = () => openBookingDetail(bk.id);
+            listDiv.appendChild(card);
+          });
+        }
+        
+        dayCol.appendChild(listDiv);
+        grid.appendChild(dayCol);
+      });
+    }
+
+    // --- 訂位詳情彈窗 ---
+    function openBookingDetail(id) {
+      const bk = getBookings().find(b => b.id === id);
+      if (!bk) return;
+
+      selectedBookingId = id;
+      document.getElementById("detailId").textContent = bk.id;
+      document.getElementById("detailName").textContent = bk.name;
+      document.getElementById("detailPhone").textContent = bk.phone;
+      document.getElementById("detailEmail").textContent = bk.email || "無";
+      document.getElementById("detailDate").textContent = formatDateChinese(bk.date);
+      
+      const endTime = minutesToTime(timeToMinutes(bk.time) + 90);
+      document.getElementById("detailTime").textContent = `${bk.time} ~ ${endTime} (1.5小時)`;
+      document.getElementById("detailPeople").textContent = `${bk.totalGuests} 位 (大人: ${bk.adults}, 小孩: ${bk.kids})`;
+      document.getElementById("detailNotes").textContent = bk.notes || "無";
+      document.getElementById("detailCreated").textContent = `建立於: ${new Date(bk.createdAt).toLocaleString()}`;
+      
+      // 打開 Modal
+      document.getElementById("detailModal").classList.add("active");
+    }
+
+    function changeDetailStatus(newStatus) {
+      if (selectedBookingId) {
+        updateBookingStatus(selectedBookingId, newStatus);
+        closeModal("detailModal");
+        renderAll();
+      }
+    }
+
+    function deleteDetailBooking() {
+      if (selectedBookingId && confirm("⚠️ 您確定要將此預約徹底從系統中刪除嗎？刪除後將無法還原。")) {
+        deleteBooking(selectedBookingId);
+        closeModal("detailModal");
+        renderAll();
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("active");
+    }
+
+    // --- 表格清單渲染 ---
+    function renderBookingsTable() {
+      const keyword = document.getElementById("searchKeyword").value.trim().toLowerCase();
+      const statusFilter = document.getElementById("filterStatus").value;
+      
+      const bookings = getBookings();
+      // 排序，近期的在上面
+      bookings.sort((a,b) => new Date(b.date + "T" + b.time) - new Date(a.date + "T" + a.time));
+
+      const tbody = document.getElementById("bookingsTableBody");
+      tbody.innerHTML = "";
+
+      let count = 0;
+      bookings.forEach(bk => {
+        // 關鍵字搜尋 (編號, 姓名, 電話)
+        if (keyword && !bk.id.toLowerCase().includes(keyword) && !bk.name.toLowerCase().includes(keyword) && !bk.phone.includes(keyword)) {
+          return;
+        }
+        // 狀態篩選
+        if (statusFilter !== "all" && bk.status !== statusFilter) {
+          return;
+        }
+
+        count++;
+        const tr = document.createElement("tr");
+        
+        let statusBadgeClass = "status-pending";
+        let statusLabel = "已確認";
+        if (bk.status === "Cancelled") {
+          statusBadgeClass = "status-cancelled";
+          statusLabel = "已取消";
+        } else if (bk.status === "Seated") {
+          statusBadgeClass = "status-confirmed";
+          statusLabel = "已入座";
+        }
+        
+        tr.innerHTML = `
+          <td style="font-weight:700; color:var(--primary-color);">${bk.id}</td>
+          <td>${bk.date}<br><strong style="color:var(--text-main);">${bk.time}</strong></td>
+          <td><strong>${bk.name}</strong><br><span style="font-size:12px; color:var(--text-muted);">${bk.phone}</span></td>
+          <td>${bk.totalGuests} 人<br><span style="font-size:11px; color:var(--text-light);">${bk.adults}大 ${bk.kids}小</span></td>
+          <td><span class="status-badge ${statusBadgeClass}">${statusLabel}</span></td>
+          <td style="font-size:12px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${bk.notes || ''}">${bk.notes || '-'}</td>
+          <td>
+            <button class="btn-action" onclick="openBookingDetail('${bk.id}')">查看/編輯</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (count === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-light); padding:30px;">目前無符合的訂位紀錄。</td></tr>`;
+      }
+    }
+
+    // --- 營業時段設定管理 ---
+    function renderTimeSettings() {
+      const settings = getSettings();
+      
+      const lunchDiv = document.getElementById("lunchTimesList");
+      lunchDiv.innerHTML = "";
+      settings.lunchSlots.sort().forEach(time => {
+        lunchDiv.appendChild(createTimeBadge(time, 'lunch'));
+      });
+
+      const dinnerDiv = document.getElementById("dinnerTimesList");
+      dinnerDiv.innerHTML = "";
+      settings.dinnerSlots.sort().forEach(time => {
+        dinnerDiv.appendChild(createTimeBadge(time, 'dinner'));
+      });
+    }
+
+    function createTimeBadge(time, type) {
+      const badge = document.createElement("div");
+      badge.style.display = "inline-flex";
+      badge.style.alignItems = "center";
+      badge.style.gap = "4px";
+      badge.style.padding = "4px 10px";
+      badge.style.backgroundColor = "var(--input-bg)";
+      badge.style.borderRadius = "6px";
+      badge.style.fontSize = "13px";
+      badge.style.fontWeight = "600";
+      
+      badge.innerHTML = `
+        <span>${time}</span>
+        <span onclick="removeTimeSlot('${time}', '${type}')" style="color:var(--error-color); cursor:pointer; font-size:15px; font-weight:700;">&times;</span>
+      `;
+      return badge;
+    }
+
+    function addTimeSlot(type) {
+      const inputId = type === 'lunch' ? 'newLunchTime' : 'newDinnerTime';
+      const inputVal = document.getElementById(inputId).value.trim();
+      
+      if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(inputVal)) {
+        alert("時間格式不正確！應為 HH:MM (例如 12:30 或 18:00)");
+        return;
+      }
+
+      const settings = getSettings();
+      const targetArray = type === 'lunch' ? settings.lunchSlots : settings.dinnerSlots;
+      
+      if (targetArray.includes(inputVal)) {
+        alert("該時段已存在！");
+        return;
+      }
+
+      targetArray.push(inputVal);
+      saveSettings(settings);
+      document.getElementById(inputId).value = "";
+      renderTimeSettings();
+      renderWeeklyView();
+    }
+
+    function removeTimeSlot(time, type) {
+      if (confirm(`確定要刪除時段 ${time} 嗎？`)) {
+        const settings = getSettings();
+        if (type === 'lunch') {
+          settings.lunchSlots = settings.lunchSlots.filter(t => t !== time);
+        } else {
+          settings.dinnerSlots = settings.dinnerSlots.filter(t => t !== time);
+        }
+        saveSettings(settings);
+        renderTimeSettings();
+        renderWeeklyView();
+      }
+    }
+
+    // --- 假期管理 ---
+    function renderHolidaysList() {
+      const settings = getSettings();
+      const container = document.getElementById("holidaysList");
+      container.innerHTML = "";
+      
+      // 排序，將未來的假期排前面
+      settings.holidays.sort().forEach(dateStr => {
+        const item = document.createElement("div");
+        item.className = "settings-list-item";
+        
+        item.innerHTML = `
+          <span style="font-weight:600;">${dateStr} (${formatDateChinese(dateStr).split(" ")[1] || ''})</span>
+          <button class="btn-action btn-danger" style="margin:0; padding:2px 8px;" onclick="removeCustomHoliday('${dateStr}')">刪除</button>
+        `;
+        container.appendChild(item);
+      });
+
+      if (settings.holidays.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color:var(--text-light); font-size:12px; padding:10px;">目前無設定特定假期。</p>`;
+      }
+    }
+
+    function addCustomHoliday() {
+      const val = document.getElementById("newHolidayDate").value;
+      if (!val) {
+        alert("請選擇日期！");
+        return;
+      }
+
+      const settings = getSettings();
+      if (settings.holidays.includes(val)) {
+        alert("該日期已設為假期！");
+        return;
+      }
+
+      settings.holidays.push(val);
+      saveSettings(settings);
+      document.getElementById("newHolidayDate").value = "";
+      renderHolidaysList();
+      renderWeeklyView(); // 刷新週曆狀態
+    }
+
+    function removeCustomHoliday(dateStr) {
+      if (confirm(`確定要取消 ${dateStr} 的假期設定嗎？`)) {
+        const settings = getSettings();
+        settings.holidays = settings.holidays.filter(d => d !== dateStr);
+        saveSettings(settings);
+        renderHolidaysList();
+        renderWeeklyView();
+      }
+    }
+
+    // --- 設定修改 (最大容量與管理密碼) ---
+    function saveCapacitySetting() {
+      const val = parseInt(document.getElementById("settingsMaxCap").value);
+      if (isNaN(val) || val < 1) {
+        alert("請輸入有效的正整數！");
+        return;
+      }
+
+      const settings = getSettings();
+      settings.maxCapacity = val;
+      saveSettings(settings);
+      
+      document.getElementById("kpiMaxCapText").textContent = val + " 人";
+      alert("每時段最大容量限制已更新！");
+      renderAll();
+    }
+
+    function savePasswordSetting() {
+      const val = document.getElementById("settingsPassword").value.trim();
+      if (!val) {
+        alert("請輸入密碼！");
+        return;
+      }
+
+      const settings = getSettings();
+      settings.adminPassword = val;
+      saveSettings(settings);
+      
+      document.getElementById("settingsPassword").value = "";
+      alert("管理員密碼更新成功！");
+    }
+
+    function quickChangeCapacity() {
+      const settings = getSettings();
+      const newVal = prompt("請輸入新的同時間最大客容量上限：", settings.maxCapacity);
+      if (newVal !== null) {
+        const val = parseInt(newVal);
+        if (!isNaN(val) && val >= 1) {
+          settings.maxCapacity = val;
+          saveSettings(settings);
+          document.getElementById("settingsMaxCap").value = val;
+          document.getElementById("kpiMaxCapText").textContent = val + " 人";
+          renderAll();
+        } else {
+          alert("請輸入正確的數字！");
+        }
+      }
+    }
+
+    // --- 電話手動訂位 ---
+    function updateManualTimeOptions() {
+      const dateVal = document.getElementById("manualDate").value;
+      const select = document.getElementById("manualTime");
+      select.innerHTML = "";
+
+      if (!dateVal) return;
+
+      const slots = getAvailableSlotsForDate(dateVal);
+      const all = [...slots.lunch, ...slots.dinner].sort();
+
+      all.forEach(time => {
+        const opt = document.createElement("option");
+        opt.value = time;
+        opt.textContent = time;
+        select.appendChild(opt);
+      });
+    }
+
+    function submitManualBooking() {
+      const name = document.getElementById("manualName").value.trim();
+      const phone = document.getElementById("manualPhone").value.trim();
+      const date = document.getElementById("manualDate").value;
+      const time = document.getElementById("manualTime").value;
+      const adults = parseInt(document.getElementById("manualAdults").value);
+      const kids = parseInt(document.getElementById("manualKids").value);
+      const notes = document.getElementById("manualNotes").value.trim();
+
+      if (!name || !phone || !date || !time) {
+        alert("請填寫姓名、電話、日期與時間！");
+        return;
+      }
+      
+      if (!/^09\d{8}$/.test(phone)) {
+        alert("手機號碼格式不正確，應為 09 開頭共 10 碼！");
+        return;
+      }
+
+      const totalGuests = adults + kids;
+      const result = addBooking({
+        name,
+        phone,
+        email: "", // 電話預約預設不填 email
+        date,
+        time,
+        adults,
+        kids,
+        totalGuests,
+        notes: notes ? `[電話預約] ${notes}` : "[電話預約]"
+      });
+
+      if (result.success) {
+        alert(`預約建立成功！訂位編號：${result.booking.id}`);
+        // 清空輸入
+        document.getElementById("manualName").value = "";
+        document.getElementById("manualPhone").value = "";
+        document.getElementById("manualNotes").value = "";
+        renderAll();
+      } else {
+        alert(result.message);
+      }
+    }
+  </script>
+</body>
+</html>

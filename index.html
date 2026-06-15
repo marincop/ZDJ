@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>蘇記豬肚雞 - 線上訂位系統</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- 頂部功能導覽 -->
+    <div class="top-nav">
+      <div class="lang-selector">
+        <span>🌐</span>
+        <select id="langSelect">
+          <option value="zh-TW">繁中</option>
+          <option value="en">English (Mock)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 頂部美食圖片輪播 -->
+    <div class="hero-carousel">
+      <div class="carousel-slides" id="carouselSlides">
+        <div class="carousel-slide">
+          <img src="assets/hero1.png" alt="美味豬肚雞火鍋">
+        </div>
+        <div class="carousel-slide">
+          <img src="assets/hero2.png" alt="蘇記豬肚雞優雅用餐環境">
+        </div>
+      </div>
+      <div class="carousel-dots">
+        <div class="carousel-dot active" onclick="setSlide(0)"></div>
+        <div class="carousel-dot" onclick="setSlide(1)"></div>
+      </div>
+    </div>
+
+    <!-- 品牌標題與Logo -->
+    <div class="brand-section">
+      <div class="logo-container">
+        <img src="assets/logo.jpg" alt="蘇記豬肚雞 Logo">
+      </div>
+      <div class="brand-info">
+        <div class="brand-text">
+          <h1>蘇記豬肚雞</h1>
+          <p>火鍋 · 廣式老火湯底鍋物</p>
+        </div>
+        <button class="share-btn" onclick="toggleShareModal()">
+          <span>📤</span> 分享
+        </button>
+      </div>
+    </div>
+
+    <!-- 訂位時段選擇區塊 -->
+    <div class="booking-section">
+      <h2 class="section-title">選擇訂位時段</h2>
+
+      <!-- 用餐人數 -->
+      <div class="form-group">
+        <label class="form-label">用餐人數</label>
+        <div class="inline-dropdowns">
+          <div class="select-wrapper">
+            <select id="adultSelect" onchange="onPeopleChange()">
+              <option value="1">1位大人</option>
+              <option value="2" selected>2位大人</option>
+              <option value="3">3位大人</option>
+              <option value="4">4位大人</option>
+              <option value="5">5位大人</option>
+              <option value="6">6位大人</option>
+              <option value="7">7位大人</option>
+              <option value="8">8位大人</option>
+              <option value="9">9位大人</option>
+              <option value="10">10位大人</option>
+              <option value="11">11位大人</option>
+              <option value="12">12位大人</option>
+            </select>
+          </div>
+          <div class="select-wrapper">
+            <select id="kidSelect" onchange="onPeopleChange()">
+              <option value="0" selected>0位小孩</option>
+              <option value="1">1位小孩</option>
+              <option value="2">2位小孩</option>
+              <option value="3">3位小孩</option>
+              <option value="4">4位小孩</option>
+              <option value="5">5位小孩</option>
+              <option value="6">6位小孩</option>
+              <option value="7">7位小孩</option>
+              <option value="8">8位小孩</option>
+              <option value="9">9位小孩</option>
+              <option value="10">10位小孩</option>
+              <option value="11">11位小孩</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint-text" id="peopleHint">可接受 1-12 位訂位（含大人與小孩）</p>
+      </div>
+
+      <!-- 用餐日期 -->
+      <div class="form-group">
+        <label class="form-label">用餐日期</label>
+        <div class="select-wrapper">
+          <select id="dateSelect" onchange="renderTimeSlots()">
+            <!-- 動態插入日期選項 -->
+          </select>
+        </div>
+      </div>
+
+      <!-- 時段頁籤（全部/中午/晚上） -->
+      <div class="tabs-container">
+        <button class="tab-btn active" id="tab-all" onclick="filterSlots('all')">ALL</button>
+        <button class="tab-btn" id="tab-lunch" onclick="filterSlots('lunch')">中午</button>
+        <button class="tab-btn" id="tab-dinner" onclick="filterSlots('dinner')">晚上</button>
+      </div>
+
+      <!-- 時間格顯示 -->
+      <div class="time-slots-grid" id="timeSlotsGrid">
+        <!-- 動態渲染時間 -->
+      </div>
+      
+      <button class="submit-btn" id="nextStepBtn" disabled onclick="openContactModal()">確定選取時段</button>
+    </div>
+
+    <!-- 歷史訂位查詢按鈕 -->
+    <div class="lookup-section">
+      <button class="outline-btn" onclick="openLookupModal()">
+        🔍 查詢我已有的訂位
+      </button>
+    </div>
+
+    <!-- 訂位規則展示區 (手風琴樣式) -->
+    <div class="rules-section">
+      <h3 class="section-title" style="font-size: 16px; margin-bottom: 12px;">訂位須知與規則</h3>
+      <div class="rules-container">
+        
+        <div class="rule-accordion">
+          <div class="rule-header" onclick="toggleAccordion(this)">1. 人數確認與到齊入座</div>
+          <div class="rule-content">
+            <div class="rule-content-inner">全員到齊： 多數餐廳規定「全員到齊」後才安排入座，若有親友遲到，店家有權拒絕讓部分客人先入座。
+兒童計費： 訂位時須明確告知是否有兒童，以利店家安排兒童座椅或計算低消。</div>
+          </div>
+        </div>
+
+        <div class="rule-accordion">
+          <div class="rule-header" onclick="toggleAccordion(this)">2. 訂位保留與遲到處理</div>
+          <div class="rule-content">
+            <div class="rule-content-inner">保留時間： 一般保留 10 到 15 分鐘。若預計會遲到，務必提前打電話向餐廳確認，否則逾時座位將直接釋放給現場候補客人。
+自動取消： 訂位確認前一天，許多店家會發送簡訊要求回覆，若未確認，系統或店家可能會自動取消訂位。</div>
+          </div>
+        </div>
+
+        <div class="rule-accordion">
+          <div class="rule-header" onclick="toggleAccordion(this)">3. 用餐時間限制</div>
+          <div class="rule-content">
+            <div class="rule-content-inner">為了翻桌率與後續客人權益，內用時間限制為 90 分鐘（1.5小時），計時標準從「訂位時間」開始計算。</div>
+          </div>
+        </div>
+
+        <div class="rule-accordion">
+          <div class="rule-header" onclick="toggleAccordion(this)">4. 訂金預付與收費機制</div>
+          <div class="rule-content">
+            <div class="rule-content-inner">一般餐廳： 本店屬平價鍋物，免收預付訂金，誠信預訂。</div>
+          </div>
+        </div>
+
+        <div class="rule-accordion">
+          <div class="rule-header" onclick="toggleAccordion(this)">5. 特殊消費規定（低消與外食）</div>
+          <div class="rule-content">
+            <div class="rule-content-inner">低消限制： 本店設有每人基本消費金額，且不包含服務費，亦不可合併計算。
+外食外飲： 禁止攜帶外食與外飲，若自帶酒水通常會酌收開瓶費，生日慶生蛋糕可攜帶但需配合店家保管。</div>
+          </div>
+        </div>
+
+        <div class="rule-accordion">
+          <div class="rule-header" onclick="toggleAccordion(this)">6. 取消與改期須知</div>
+          <div class="rule-content">
+            <div class="rule-content-inner">若臨時無法前往，應於用餐前一天致電或於線上系統取消訂位。若無故未到（No-Show），系統可能會將電話列入黑名單，影響後續訂位權益。</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 頁尾與管理入口 -->
+    <div class="footer-section">
+      <button class="admin-login-link" onclick="openAdminLoginModal()">管理者登入</button>
+      <div class="copyright">© 2026 蘇記豬肚雞 版權所有</div>
+    </div>
+
+  </div>
+
+  <!-- 彈窗 1：填寫聯絡資料 (顧客資料彈窗) -->
+  <div class="modal-overlay" id="contactModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">填寫聯絡資訊</h3>
+        <button class="modal-close" onclick="closeModal('contactModal')">&times;</button>
+      </div>
+      
+      <!-- 顯示剛才選擇的明細 -->
+      <div class="booking-summary-box">
+        <div class="summary-row">
+          <span class="summary-label">用餐時間</span>
+          <span class="summary-val" id="summaryDateTime">2026-06-15 18:00</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">用餐人數</span>
+          <span class="summary-val" id="summaryPeople">2位大人, 0位小孩</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="custName">聯絡人姓名<span class="required-dot">*</span></label>
+        <input type="text" id="custName" class="input-text" placeholder="請輸入您的姓名">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="custPhone">手機號碼<span class="required-dot">*</span></label>
+        <input type="tel" id="custPhone" class="input-text" placeholder="請輸入聯絡手機 (如 0912345678)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="custEmail">電子郵件 (選填)</label>
+        <input type="email" id="custEmail" class="input-text" placeholder="請輸入電子郵件 (訂位通知用)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="custNotes">特殊需求與備註 (選填)</label>
+        <input type="text" id="custNotes" class="input-text" placeholder="如：需要嬰兒椅 x1、過敏需求等">
+      </div>
+
+      <button class="submit-btn" onclick="submitBookingForm()">確認送出訂位</button>
+    </div>
+  </div>
+
+  <!-- 彈窗 2：訂位成功明細 -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal-content">
+      <div class="success-header">
+        <div class="success-icon">✓</div>
+        <h2 class="modal-title" style="font-size: 22px;">訂位預約成功！</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">期待您的光臨，請儲存此預約資訊</p>
+      </div>
+
+      <div class="booking-summary-box">
+        <div class="summary-row">
+          <span class="summary-label">訂位編號</span>
+          <span class="summary-val" id="successId" style="color: var(--primary-color); font-size: 16px;">BK123456</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">顧客姓名</span>
+          <span class="summary-val" id="successName">王大明</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">預約日期</span>
+          <span class="summary-val" id="successDate">2026-06-15</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">預約時間</span>
+          <span class="summary-val" id="successTime">18:00 (用餐至 19:30)</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">預約人數</span>
+          <span class="summary-val" id="successPeople">2位大人, 0位小孩</span>
+        </div>
+      </div>
+
+      <!-- 模擬 QR Code -->
+      <div class="qr-code-placeholder">
+        <img id="successQRCode" src="" alt="QR Code">
+        <span>現場出示快速確認</span>
+      </div>
+
+      <button class="submit-btn" onclick="closeSuccessAndReload()">關閉視窗</button>
+    </div>
+  </div>
+
+  <!-- 彈窗 3：訂位查詢彈窗 -->
+  <div class="modal-overlay" id="lookupModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">查詢我的訂位</h3>
+        <button class="modal-close" onclick="closeModal('lookupModal')">&times;</button>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="lookupPhone">輸入手機號碼</label>
+        <div style="display:flex; gap: 8px;">
+          <input type="tel" id="lookupPhone" class="input-text" placeholder="請輸入訂位手機號碼" style="flex:1;">
+          <button class="submit-btn" style="width:auto; margin:0; padding:0 20px;" onclick="runBookingLookup()">查詢</button>
+        </div>
+      </div>
+
+      <div id="lookupResults" style="margin-top: 15px; display:flex; flex-direction:column; gap:12px;">
+        <!-- 查詢結果渲染在此 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 4：管理者登入彈窗 -->
+  <div class="modal-overlay" id="adminLoginModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">管理者登入</h3>
+        <button class="modal-close" onclick="closeModal('adminLoginModal')">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="adminPass">請輸入管理密碼</label>
+        <input type="password" id="adminPass" class="input-text" placeholder="請輸入登入密碼">
+        <p class="hint-text" style="color: var(--text-light)">預設登入密碼為：admin888</p>
+      </div>
+
+      <div id="loginErrorMsg" style="color: var(--error-color); font-size:13px; margin-bottom: 12px; display:none;">
+        密碼不正確，請重新輸入！
+      </div>
+
+      <button class="submit-btn" onclick="submitAdminLogin()">登入系統</button>
+    </div>
+  </div>
+
+  <!-- 彈窗 5：模擬分享彈窗 -->
+  <div class="modal-overlay" id="shareModal">
+    <div class="modal-content" style="text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title">分享「蘇記豬肚雞」</h3>
+        <button class="modal-close" onclick="closeModal('shareModal')">&times;</button>
+      </div>
+      <p style="margin-bottom: 20px; color: var(--text-muted);">複製下方訂位連結，傳送給親朋好友：</p>
+      <input type="text" class="input-text" id="shareUrlInput" value="" readonly style="text-align:center; font-size:13px; margin-bottom: 20px;">
+      <button class="submit-btn" onclick="copyShareLink()">複製連結</button>
+    </div>
+  </div>
+
+  <script>
+    // --- 輪播控制 ---
+    let activeSlide = 0;
+    function setSlide(index) {
+      activeSlide = index;
+      const slides = document.getElementById("carouselSlides");
+      slides.style.transform = `translateX(-${index * 50}%)`;
+      
+      const dots = document.querySelectorAll(".carousel-dot");
+      dots.forEach((dot, idx) => {
+        if (idx === index) dot.classList.add("active");
+        else dot.classList.remove("active");
+      });
+    }
+    
+    // 自動輪播
+    setInterval(() => {
+      setSlide(activeSlide === 0 ? 1 : 0);
+    }, 6000);
+
+    // --- 全域變數 ---
+    let selectedDate = "";
+    let selectedTime = "";
+    let currentTab = "all"; // all, lunch, dinner
+
+    // --- 初始化首頁 ---
+    window.addEventListener("DOMContentLoaded", () => {
+      // 1. 初始化日期選單（提供未來的 30 天可預約）
+      initDateDropdown();
+      // 2. 更新人數判定
+      onPeopleChange();
+      // 3. 設定分享連結
+      document.getElementById("shareUrlInput").value = window.location.href;
+    });
+
+    function initDateDropdown() {
+      const dateSelect = document.getElementById("dateSelect");
+      dateSelect.innerHTML = "";
+      
+      // 從今天開始取得 30 天的日期列表
+      const today = new Date();
+      for (let i = 0; i < 30; i++) {
+        const nextDate = new Date(today);
+        nextDate.setDate(today.getDate() + i);
+        const dateStr = formatDate(nextDate);
+        
+        const isHoliday = isWeekendOrHoliday(dateStr);
+        let tag = "";
+        if (isHoliday) {
+          tag = " (假日)";
+        }
+        
+        const option = document.createElement("option");
+        option.value = dateStr;
+        option.textContent = formatDateChinese(dateStr) + tag;
+        dateSelect.appendChild(option);
+      }
+      
+      // 預設選擇第一天，並渲染時段
+      selectedDate = dateSelect.value;
+      renderTimeSlots();
+    }
+
+    // 當大人或小孩人數改變時
+    function onPeopleChange() {
+      const adults = parseInt(document.getElementById("adultSelect").value);
+      const kids = parseInt(document.getElementById("kidSelect").value);
+      const total = adults + kids;
+      const hint = document.getElementById("peopleHint");
+      const nextBtn = document.getElementById("nextStepBtn");
+      
+      if (total > 12) {
+        hint.style.color = "var(--error-color)";
+        hint.textContent = `⚠️ 超出訂位人數上限！目前總計 ${total} 人，一筆預訂最多只能 12 人。`;
+        nextBtn.disabled = true;
+      } else {
+        hint.style.color = "var(--text-muted)";
+        hint.textContent = `可接受 1-12 位訂位（含大人與小孩）- 目前已選：${total} 人`;
+        if (selectedTime) {
+          nextBtn.disabled = false;
+        }
+      }
+      
+      // 每次變更人數重新評估時段是否額滿，因為有些時段剩餘容量可能小於新的總人數
+      renderTimeSlots();
+    }
+
+    // 渲染時間格
+    function renderTimeSlots() {
+      const dateSelect = document.getElementById("dateSelect");
+      selectedDate = dateSelect.value;
+      const grid = document.getElementById("timeSlotsGrid");
+      grid.innerHTML = "";
+      
+      // 重置選取的時間
+      selectedTime = "";
+      document.getElementById("nextStepBtn").disabled = true;
+
+      // 取得本日開放的 Lunch 與 Dinner 時段
+      const slots = getAvailableSlotsForDate(selectedDate);
+      
+      // 合併與排序
+      let allSlots = [];
+      slots.lunch.forEach(time => allSlots.push({ time, type: 'lunch' }));
+      slots.dinner.forEach(time => allSlots.push({ time, type: 'dinner' }));
+
+      // 取得人數
+      const adults = parseInt(document.getElementById("adultSelect").value);
+      const kids = parseInt(document.getElementById("kidSelect").value);
+      const partySize = adults + kids;
+      
+      // 當日時間過期判定：若是「今天」，要過濾掉已經過去的時間 (包含用餐 90 分鐘前)
+      const now = new Date();
+      const todayStr = formatDate(now);
+      const currentMin = now.getHours() * 60 + now.getMinutes();
+
+      if (allSlots.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 20px;">此日期目前沒有開放訂位時段</div>`;
+        return;
+      }
+
+      allSlots.forEach(slot => {
+        // 時段頁籤過濾
+        if (currentTab === 'lunch' && slot.type !== 'lunch') return;
+        if (currentTab === 'dinner' && slot.type !== 'dinner') return;
+        
+        const slotDiv = document.createElement("div");
+        slotDiv.className = "time-slot";
+        
+        // 檢查是否為今天且時間已過 (給 15 分鐘寬限，超過即不可訂)
+        const slotMin = timeToMinutes(slot.time);
+        const isPast = (selectedDate === todayStr) && (slotMin < currentMin + 15);
+        
+        if (isPast) {
+          slotDiv.classList.add("disabled");
+          slotDiv.innerHTML = `<span>${slot.time}</span><span class="slot-status">已過</span>`;
+        } else {
+          // 呼叫 1.5 小時容量重疊檢測
+          const capCheck = checkCapacityAvailable(selectedDate, slot.time, partySize);
+          
+          if (!capCheck.available) {
+            slotDiv.classList.add("disabled");
+            slotDiv.innerHTML = `<span>${slot.time}</span><span class="slot-status">已滿</span>`;
+          } else {
+            // 可選取
+            slotDiv.innerHTML = `<span>${slot.time}</span><span class="slot-status">可預約</span>`;
+            slotDiv.onclick = () => selectTimeSlot(slotDiv, slot.time);
+          }
+        }
+        
+        grid.appendChild(slotDiv);
+      });
+
+      if (grid.children.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 20px;">無符合時段</div>`;
+      }
+    }
+
+    // 選取時間格
+    function selectTimeSlot(element, time) {
+      // 取消原本選取的
+      const active = document.querySelector(".time-slot.selected");
+      if (active) active.classList.remove("selected");
+      
+      element.classList.add("selected");
+      selectedTime = time;
+      
+      // 人數合法才允許下一步
+      const adults = parseInt(document.getElementById("adultSelect").value);
+      const kids = parseInt(document.getElementById("kidSelect").value);
+      const total = adults + kids;
+      if (total >= 1 && total <= 12) {
+        document.getElementById("nextStepBtn").disabled = false;
+      }
+    }
+
+    // 時段頁籤切換
+    function filterSlots(type) {
+      currentTab = type;
+      
+      // 更新按鈕 active 狀態
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+      document.getElementById(`tab-${type}`).classList.add("active");
+      
+      renderTimeSlots();
+    }
+
+    // 訂位須知手風琴展開/收合
+    function toggleAccordion(element) {
+      const parent = element.parentElement;
+      const content = parent.querySelector(".rule-content");
+      
+      if (parent.classList.contains("active")) {
+        parent.classList.remove("active");
+        content.style.maxHeight = null;
+      } else {
+        // 先收合所有其它的
+        document.querySelectorAll(".rule-accordion").forEach(item => {
+          item.classList.remove("active");
+          item.querySelector(".rule-content").style.maxHeight = null;
+        });
+        
+        parent.classList.add("active");
+        content.style.maxHeight = content.scrollHeight + "px";
+      }
+    }
+
+    // --- 彈跳視窗控制 ---
+    function openModal(id) {
+      document.getElementById(id).classList.add("active");
+    }
+    
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("active");
+    }
+
+    // 打開聯絡表單彈窗
+    function openContactModal() {
+      // 帶入明細
+      const dateText = formatDateChinese(selectedDate);
+      document.getElementById("summaryDateTime").textContent = `${dateText} ${selectedTime}`;
+      
+      const adults = document.getElementById("adultSelect").value;
+      const kids = document.getElementById("kidSelect").value;
+      document.getElementById("summaryPeople").textContent = `${adults}位大人, ${kids}位小孩`;
+      
+      openModal("contactModal");
+    }
+
+    // 顧客提交訂位表單
+    function submitBookingForm() {
+      const name = document.getElementById("custName").value.trim();
+      const phone = document.getElementById("custPhone").value.trim();
+      const email = document.getElementById("custEmail").value.trim();
+      const notes = document.getElementById("custNotes").value.trim();
+      
+      if (!name) {
+        alert("請輸入聯絡人姓名！");
+        return;
+      }
+      if (!phone) {
+        alert("請輸入手機號碼！");
+        return;
+      }
+      if (!/^09\d{8}$/.test(phone)) {
+        alert("手機號碼格式不正確，應為 09 開頭共 10 碼！");
+        return;
+      }
+
+      const adults = parseInt(document.getElementById("adultSelect").value);
+      const kids = parseInt(document.getElementById("kidSelect").value);
+      const totalGuests = adults + kids;
+
+      const bookingData = {
+        name,
+        phone,
+        email,
+        date: selectedDate,
+        time: selectedTime,
+        adults,
+        kids,
+        totalGuests,
+        notes
+      };
+
+      // 呼叫 app.js 新增訂位
+      const result = addBooking(bookingData);
+      if (result.success) {
+        closeModal("contactModal");
+        
+        // 渲染成功彈窗明細
+        document.getElementById("successId").textContent = result.booking.id;
+        document.getElementById("successName").textContent = result.booking.name;
+        document.getElementById("successDate").textContent = formatDateChinese(result.booking.date);
+        
+        // 計算用餐結束時間 (90分鐘後)
+        const mins = timeToMinutes(result.booking.time) + 90;
+        const endTime = minutesToTime(mins);
+        document.getElementById("successTime").textContent = `${result.booking.time} ~ ${endTime} (用餐 1.5 小時)`;
+        document.getElementById("successPeople").textContent = `${result.booking.adults}位大人, ${result.booking.kids}位小孩`;
+        
+        // 產生存放 QR Code
+        document.getElementById("successQRCode").src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=SUJI_${result.booking.id}`;
+        
+        openModal("successModal");
+      } else {
+        alert(result.message);
+      }
+    }
+
+    function closeSuccessAndReload() {
+      closeModal("successModal");
+      // 重新讀取，刷新時段狀態
+      renderTimeSlots();
+      // 清空表單
+      document.getElementById("custName").value = "";
+      document.getElementById("custPhone").value = "";
+      document.getElementById("custEmail").value = "";
+      document.getElementById("custNotes").value = "";
+    }
+
+    // --- 訂位查詢邏輯 ---
+    function openLookupModal() {
+      document.getElementById("lookupPhone").value = "";
+      document.getElementById("lookupResults").innerHTML = "";
+      openModal("lookupModal");
+    }
+
+    function runBookingLookup() {
+      const phone = document.getElementById("lookupPhone").value.trim();
+      const resultsDiv = document.getElementById("lookupResults");
+      resultsDiv.innerHTML = "";
+
+      if (!phone) {
+        alert("請輸入要查詢的手機號碼！");
+        return;
+      }
+
+      // 呼叫 app.js 查詢
+      const bookings = lookupBookingsByPhone(phone);
+      if (bookings.length === 0) {
+        resultsDiv.innerHTML = `<p style="text-align:center; color:var(--text-light); padding:10px;">找不到此手機號碼的預訂紀錄。</p>`;
+        return;
+      }
+
+      // 排序，即將到來的在前面
+      bookings.sort((a,b) => new Date(a.date + "T" + a.time) - new Date(b.date + "T" + b.time));
+
+      bookings.forEach(bk => {
+        const item = document.createElement("div");
+        item.style.backgroundColor = "var(--input-bg)";
+        item.style.borderRadius = "8px";
+        item.style.padding = "14px";
+        item.style.borderLeft = `4px solid ${bk.status === 'Cancelled' ? 'var(--error-color)' : 'var(--primary-color)'}`;
+        
+        let statusText = "已確認";
+        let color = "var(--success-color)";
+        if (bk.status === "Cancelled") {
+          statusText = "已取消";
+          color = "var(--error-color)";
+        } else if (bk.status === "Seated") {
+          statusText = "已入座用餐";
+          color = "var(--text-muted)";
+        }
+
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between; font-weight:700; margin-bottom: 6px;">
+            <span>${formatDateChinese(bk.date)} ${bk.time}</span>
+            <span style="color:${color}">${statusText}</span>
+          </div>
+          <div style="font-size:13px; color:var(--text-muted);">
+            <div>訂位編號：${bk.id}</div>
+            <div>人數：${bk.adults} 大 ${bk.kids} 小 (總計 ${bk.totalGuests} 人)</div>
+            <div>姓名：${bk.name}</div>
+          </div>
+          ${bk.status === 'Confirmed' ? `
+            <div style="text-align:right; margin-top:8px;">
+              <button onclick="cancelBookingFromClient('${bk.id}')" style="background-color:transparent; border:1px solid var(--error-color); color:var(--error-color); border-radius:4px; padding:4px 8px; font-size:12px; cursor:pointer;">取消訂位</button>
+            </div>
+          ` : ''}
+        `;
+        resultsDiv.appendChild(item);
+      });
+    }
+
+    function cancelBookingFromClient(id) {
+      if (confirm("您確定要取消這個訂位嗎？")) {
+        const success = updateBookingStatus(id, "Cancelled");
+        if (success) {
+          alert("訂位已成功取消！");
+          runBookingLookup(); // 刷新查詢清單
+          renderTimeSlots(); // 刷新首頁時段
+        }
+      }
+    }
+
+    // --- 管理者登入邏輯 ---
+    function openAdminLoginModal() {
+      document.getElementById("adminPass").value = "";
+      document.getElementById("loginErrorMsg").style.display = "none";
+      openModal("adminLoginModal");
+    }
+
+    function submitAdminLogin() {
+      const enteredPass = document.getElementById("adminPass").value;
+      const settings = getSettings();
+      
+      if (enteredPass === settings.adminPassword) {
+        closeModal("adminLoginModal");
+        // 寫入登入 SessionToken 並跳轉
+        sessionStorage.setItem("suji_admin_session", "logged_in");
+        window.location.href = "admin.html";
+      } else {
+        document.getElementById("loginErrorMsg").style.display = "block";
+      }
+    }
+
+    // --- 分享連結控制 ---
+    function toggleShareModal() {
+      openModal("shareModal");
+    }
+
+    function copyShareLink() {
+      const input = document.getElementById("shareUrlInput");
+      input.select();
+      input.setSelectionRange(0, 99999); // 行動裝置相容
+      navigator.clipboard.writeText(input.value)
+        .then(() => {
+          alert("訂位連結已複製至剪貼簿！可以傳送給親友了。");
+          closeModal("shareModal");
+        })
+        .catch(() => {
+          alert("複製失敗，請手動複製文字輸入框內容。");
+        });
+    }
+  </script>
+</body>
+</html>
