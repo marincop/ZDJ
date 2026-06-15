@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>蘇記豬肚雞 - 線上訂位系統</title>
+  <title>蘇記嘀兜雞/中和環球概念店 - 線上訂位系統</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js"></script>
 </head>
@@ -45,7 +45,7 @@
       </div>
       <div class="brand-info">
         <div class="brand-text">
-          <h1>蘇記豬肚雞</h1>
+          <h1 style="font-size: 20px;">蘇記嘀兜雞/中和環球概念店</h1>
           <p>火鍋 · 廣式老火湯底鍋物</p>
         </div>
         <button class="share-btn" onclick="toggleShareModal()">
@@ -121,6 +121,44 @@
       </div>
       
       <button class="submit-btn" id="nextStepBtn" disabled onclick="openContactModal()">確定選取時段</button>
+    </div>
+
+    <!-- 分店與交通地圖資訊區 -->
+    <div class="store-info-section">
+      <h2 class="section-title">分店與交通資訊</h2>
+      <div class="store-info-grid">
+        <div class="info-details">
+          <div class="info-item">
+            <span class="info-item-label">📍 門市地址</span>
+            <span class="info-item-value">235新北市中和區員山里中山路三段112號1樓</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">📞 服務專線</span>
+            <span class="info-item-value"><a href="tel:0222221111" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">(02) 2222-1111</a></span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">🚌 公車交通</span>
+            <span class="info-item-value">搭乘 <strong>307、57、897、藍31</strong> 等路線公車至「環球購物中心」站下車，步行 1 分鐘即可抵達。</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">🚇 免費接駁專車</span>
+            <span class="info-item-value">可於<strong>捷運新埔站1號出口</strong>旁或<strong>板橋車站西出口</strong>搭乘「中和環球購物中心免費接駁車」直達本概念店。</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">🚗 停車資訊</span>
+            <span class="info-item-value">鄰近的「中和環球購物中心」設有特約停車場，可供來店顧客停車並配合消費折抵。</span>
+          </div>
+        </div>
+        <div class="map-container">
+          <iframe 
+            src="https://maps.google.com/maps?q=新北市中和區中山路三段112號&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+            frameborder="0" 
+            scrolling="no" 
+            marginheight="0" 
+            marginwidth="0">
+          </iframe>
+        </div>
+      </div>
     </div>
 
     <!-- 歷史訂位查詢按鈕 -->
