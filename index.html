@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>蘇記嘀兜雞/中和環球概念店 - 線上訂位系統</title>
   <link rel="stylesheet" href="style.css">
+  <!-- 載入 Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </head>
 <body>
@@ -329,85 +331,17 @@
           <input type="tel" id="lookupPhone" class="input-text" placeholder="請輸入訂位手機號碼" style="flex:1;">
           <button class="submit-btn" style="width:auto; margin:0; padding:0 20px;" onclick="runBookingLookup()">查詢</button>
         </div>
-      </div>
-
-      <div id="lookupResults" style="margin-top: 15px; display:flex; flex-direction:column; gap:12px;">
-        <!-- 查詢結果渲染在此 -->
-      </div>
-    </div>
-  </div>
-
-  <!-- 彈窗 4：管理者登入彈窗 -->
-  <div class="modal-overlay" id="adminLoginModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">管理者登入</h3>
-        <button class="modal-close" onclick="closeModal('adminLoginModal')">&times;</button>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="adminPass">請輸入管理密碼</label>
-        <input type="password" id="adminPass" class="input-text" placeholder="請輸入登入密碼">
-        <p class="hint-text" style="color: var(--text-light)">預設登入密碼為：admin888</p>
-      </div>
-
-      <div id="loginErrorMsg" style="color: var(--error-color); font-size:13px; margin-bottom: 12px; display:none;">
-        密碼不正確，請重新輸入！
-      </div>
-
-      <button class="submit-btn" onclick="submitAdminLogin()">登入系統</button>
-    </div>
-  </div>
-
-  <!-- 彈窗 5：模擬分享彈窗 -->
-  <div class="modal-overlay" id="shareModal">
-    <div class="modal-content" style="text-align: center;">
-      <div class="modal-header">
-        <h3 class="modal-title">分享「蘇記豬肚雞」</h3>
-        <button class="modal-close" onclick="closeModal('shareModal')">&times;</button>
-      </div>
-      <p style="margin-bottom: 20px; color: var(--text-muted);">複製下方訂位連結，傳送給親朋好友：</p>
-      <input type="text" class="input-text" id="shareUrlInput" value="" readonly style="text-align:center; font-size:13px; margin-bottom: 20px;">
-      <button class="submit-btn" onclick="copyShareLink()">複製連結</button>
-    </div>
-  </div>
-
-  <script>
-    // --- 輪播控制 ---
-    let activeSlide = 0;
-    function setSlide(index) {
-      activeSlide = index;
-      const slides = document.getElementById("carouselSlides");
-      slides.style.transform = `translateX(-${index * 50}%)`;
-      
-      const dots = document.querySelectorAll(".carousel-dot");
-      dots.forEach((dot, idx) => {
-        if (idx === index) dot.classList.add("active");
-        else dot.classList.remove("active");
-      });
-    }
-    
-    // 自動輪播
-    setInterval(() => {
-      setSlide(activeSlide === 0 ? 1 : 0);
-    }, 6000);
-
-    // --- 全域變數 ---
-    let selectedDate = "";
-    let selectedTime = "";
-    let currentTab = "all"; // all, lunch, dinner
-
-    // --- 初始化首頁 ---
-    window.addEventListener("DOMContentLoaded", () => {
+      <    // --- 初始化首頁 ---
+    window.addEventListener("DOMContentLoaded", async () => {
       // 1. 初始化日期選單（提供未來的 30 天可預約）
-      initDateDropdown();
+      await initDateDropdown();
       // 2. 更新人數判定
-      onPeopleChange();
+      await onPeopleChange();
       // 3. 設定分享連結
       document.getElementById("shareUrlInput").value = window.location.href;
     });
 
-    function initDateDropdown() {
+    async function initDateDropdown() {
       const dateSelect = document.getElementById("dateSelect");
       dateSelect.innerHTML = "";
       
@@ -418,7 +352,7 @@
         nextDate.setDate(today.getDate() + i);
         const dateStr = formatDate(nextDate);
         
-        const isHoliday = isWeekendOrHoliday(dateStr);
+        const isHoliday = await isWeekendOrHoliday(dateStr);
         let tag = "";
         if (isHoliday) {
           tag = " (假日)";
@@ -432,11 +366,11 @@
       
       // 預設選擇第一天，並渲染時段
       selectedDate = dateSelect.value;
-      renderTimeSlots();
+      await renderTimeSlots();
     }
 
     // 當大人或小孩人數改變時
-    function onPeopleChange() {
+    async function onPeopleChange() {
       const adults = parseInt(document.getElementById("adultSelect").value);
       const kids = parseInt(document.getElementById("kidSelect").value);
       const total = adults + kids;
@@ -456,11 +390,11 @@
       }
       
       // 每次變更人數重新評估時段是否額滿，因為有些時段剩餘容量可能小於新的總人數
-      renderTimeSlots();
+      await renderTimeSlots();
     }
 
-    // 渲染時間格
-    function renderTimeSlots() {
+    // 渲染時間格 (非同步)
+    async function renderTimeSlots() {
       const dateSelect = document.getElementById("dateSelect");
       selectedDate = dateSelect.value;
       const grid = document.getElementById("timeSlotsGrid");
@@ -471,7 +405,7 @@
       document.getElementById("nextStepBtn").disabled = true;
 
       // 取得本日開放的 Lunch 與 Dinner 時段
-      const slots = getAvailableSlotsForDate(selectedDate);
+      const slots = await getAvailableSlotsForDate(selectedDate);
       
       // 合併與排序
       let allSlots = [];
@@ -483,7 +417,7 @@
       const kids = parseInt(document.getElementById("kidSelect").value);
       const partySize = adults + kids;
       
-      // 當日時間過期判定：若是「今天」，要過濾掉已經過去的時間 (包含用餐 90 分鐘前)
+      // 當日時間過期判定：若是「今天」，要過濾掉已經過去的時間
       const now = new Date();
       const todayStr = formatDate(now);
       const currentMin = now.getHours() * 60 + now.getMinutes();
@@ -493,15 +427,16 @@
         return;
       }
 
-      allSlots.forEach(slot => {
+      // 使用 for...of 進行非同步迭代，確保 await 連線計算正確
+      for (const slot of allSlots) {
         // 時段頁籤過濾
-        if (currentTab === 'lunch' && slot.type !== 'lunch') return;
-        if (currentTab === 'dinner' && slot.type !== 'dinner') return;
+        if (currentTab === 'lunch' && slot.type !== 'lunch') continue;
+        if (currentTab === 'dinner' && slot.type !== 'dinner') continue;
         
         const slotDiv = document.createElement("div");
         slotDiv.className = "time-slot";
         
-        // 檢查是否為今天且時間已過 (給 15 分鐘寬限，超過即不可訂)
+        // 檢查是否為今天且時間已過 (給 15 分鐘寬限)
         const slotMin = timeToMinutes(slot.time);
         const isPast = (selectedDate === todayStr) && (slotMin < currentMin + 15);
         
@@ -509,8 +444,8 @@
           slotDiv.classList.add("disabled");
           slotDiv.innerHTML = `<span>${slot.time}</span><span class="slot-status">已過</span>`;
         } else {
-          // 呼叫 1.5 小時容量重疊檢測
-          const capCheck = checkCapacityAvailable(selectedDate, slot.time, partySize);
+          // 呼叫 1.5 小時容量重疊檢測 (雲端非同步版)
+          const capCheck = await checkCapacityAvailable(selectedDate, slot.time, partySize);
           
           if (!capCheck.available) {
             slotDiv.classList.add("disabled");
@@ -523,7 +458,7 @@
         }
         
         grid.appendChild(slotDiv);
-      });
+      }
 
       if (grid.children.length === 0) {
         grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 20px;">無符合時段</div>`;
@@ -532,14 +467,12 @@
 
     // 選取時間格
     function selectTimeSlot(element, time) {
-      // 取消原本選取的
       const active = document.querySelector(".time-slot.selected");
       if (active) active.classList.remove("selected");
       
       element.classList.add("selected");
       selectedTime = time;
       
-      // 人數合法才允許下一步
       const adults = parseInt(document.getElementById("adultSelect").value);
       const kids = parseInt(document.getElementById("kidSelect").value);
       const total = adults + kids;
@@ -549,17 +482,14 @@
     }
 
     // 時段頁籤切換
-    function filterSlots(type) {
+    async function filterSlots(type) {
       currentTab = type;
-      
-      // 更新按鈕 active 狀態
       document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
       document.getElementById(`tab-${type}`).classList.add("active");
-      
-      renderTimeSlots();
+      await renderTimeSlots();
     }
 
-    // 訂位須知手風琴展開/收合
+    // 手風琴展開/收合
     function toggleAccordion(element) {
       const parent = element.parentElement;
       const content = parent.querySelector(".rule-content");
@@ -568,7 +498,6 @@
         parent.classList.remove("active");
         content.style.maxHeight = null;
       } else {
-        // 先收合所有其它的
         document.querySelectorAll(".rule-accordion").forEach(item => {
           item.classList.remove("active");
           item.querySelector(".rule-content").style.maxHeight = null;
@@ -579,7 +508,7 @@
       }
     }
 
-    // --- 彈跳視窗控制 ---
+    // 彈跳視窗控制
     function openModal(id) {
       document.getElementById(id).classList.add("active");
     }
@@ -590,7 +519,6 @@
 
     // 打開聯絡表單彈窗
     function openContactModal() {
-      // 帶入明細
       const dateText = formatDateChinese(selectedDate);
       document.getElementById("summaryDateTime").textContent = `${dateText} ${selectedTime}`;
       
@@ -601,8 +529,8 @@
       openModal("contactModal");
     }
 
-    // 顧客提交訂位表單
-    function submitBookingForm() {
+    // 顧客提交訂位表單 (非同步)
+    async function submitBookingForm() {
       const name = document.getElementById("custName").value.trim();
       const phone = document.getElementById("custPhone").value.trim();
       const email = document.getElementById("custEmail").value.trim();
@@ -637,23 +565,20 @@
         notes
       };
 
-      // 呼叫 app.js 新增訂位
-      const result = addBooking(bookingData);
+      // 呼叫 app.js 新增訂位 (雲端串接)
+      const result = await addBooking(bookingData);
       if (result.success) {
         closeModal("contactModal");
         
-        // 渲染成功彈窗明細
         document.getElementById("successId").textContent = result.booking.id;
         document.getElementById("successName").textContent = result.booking.name;
         document.getElementById("successDate").textContent = formatDateChinese(result.booking.date);
         
-        // 計算用餐結束時間 (90分鐘後)
         const mins = timeToMinutes(result.booking.time) + 90;
         const endTime = minutesToTime(mins);
         document.getElementById("successTime").textContent = `${result.booking.time} ~ ${endTime} (用餐 1.5 小時)`;
         document.getElementById("successPeople").textContent = `${result.booking.adults}位大人, ${result.booking.kids}位小孩`;
         
-        // 產生存放 QR Code
         document.getElementById("successQRCode").src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=SUJI_${result.booking.id}`;
         
         openModal("successModal");
@@ -662,11 +587,9 @@
       }
     }
 
-    function closeSuccessAndReload() {
+    async function closeSuccessAndReload() {
       closeModal("successModal");
-      // 重新讀取，刷新時段狀態
-      renderTimeSlots();
-      // 清空表單
+      await renderTimeSlots();
       document.getElementById("custName").value = "";
       document.getElementById("custPhone").value = "";
       document.getElementById("custEmail").value = "";
@@ -680,7 +603,7 @@
       openModal("lookupModal");
     }
 
-    function runBookingLookup() {
+    async function runBookingLookup() {
       const phone = document.getElementById("lookupPhone").value.trim();
       const resultsDiv = document.getElementById("lookupResults");
       resultsDiv.innerHTML = "";
@@ -690,14 +613,13 @@
         return;
       }
 
-      // 呼叫 app.js 查詢
-      const bookings = lookupBookingsByPhone(phone);
+      // 呼叫 app.js 查詢 (非同步)
+      const bookings = await lookupBookingsByPhone(phone);
       if (bookings.length === 0) {
         resultsDiv.innerHTML = `<p style="text-align:center; color:var(--text-light); padding:10px;">找不到此手機號碼的預訂紀錄。</p>`;
         return;
       }
 
-      // 排序，即將到來的在前面
       bookings.sort((a,b) => new Date(a.date + "T" + a.time) - new Date(b.date + "T" + b.time));
 
       bookings.forEach(bk => {
@@ -737,13 +659,13 @@
       });
     }
 
-    function cancelBookingFromClient(id) {
+    async function cancelBookingFromClient(id) {
       if (confirm("您確定要取消這個訂位嗎？")) {
-        const success = updateBookingStatus(id, "Cancelled");
+        const success = await updateBookingStatus(id, "Cancelled");
         if (success) {
           alert("訂位已成功取消！");
-          runBookingLookup(); // 刷新查詢清單
-          renderTimeSlots(); // 刷新首頁時段
+          await runBookingLookup();
+          await renderTimeSlots();
         }
       }
     }
@@ -755,13 +677,12 @@
       openModal("adminLoginModal");
     }
 
-    function submitAdminLogin() {
+    async function submitAdminLogin() {
       const enteredPass = document.getElementById("adminPass").value;
-      const settings = getSettings();
+      const settings = await getSettings();
       
       if (enteredPass === settings.adminPassword) {
         closeModal("adminLoginModal");
-        // 寫入登入 SessionToken 並跳轉
         sessionStorage.setItem("suji_admin_session", "logged_in");
         window.location.href = "admin.html";
       } else {
@@ -777,7 +698,7 @@
     function copyShareLink() {
       const input = document.getElementById("shareUrlInput");
       input.select();
-      input.setSelectionRange(0, 99999); // 行動裝置相容
+      input.setSelectionRange(0, 99999);
       navigator.clipboard.writeText(input.value)
         .then(() => {
           alert("訂位連結已複製至剪貼簿！可以傳送給親友了。");

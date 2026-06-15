@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>蘇記豬肚雞 - 商家管理後台</title>
   <link rel="stylesheet" href="style.css">
+  <!-- 載入 Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </head>
 <body class="admin-body">
@@ -336,16 +338,16 @@
     let selectedBookingId = ""; // 當前在彈窗檢視的訂位 ID
 
     // --- 安全驗證機制 (Mock Login) ---
-    window.addEventListener("DOMContentLoaded", () => {
-      checkAdminSession();
+    window.addEventListener("DOMContentLoaded", async () => {
+      await checkAdminSession();
     });
 
-    function checkAdminSession() {
+    async function checkAdminSession() {
       const session = sessionStorage.getItem("suji_admin_session");
       if (session === "logged_in") {
         document.getElementById("adminLockScreen").style.display = "none";
         document.getElementById("adminMainContent").style.display = "block";
-        initializeDashboard();
+        await initializeDashboard();
       } else {
         document.getElementById("adminLockScreen").style.display = "flex";
         document.getElementById("adminMainContent").style.display = "none";
@@ -353,14 +355,14 @@
       }
     }
 
-    function verifyLockPass() {
+    async function verifyLockPass() {
       const pass = document.getElementById("lockPass").value;
-      const settings = getSettings();
+      const settings = await getSettings();
       
       if (pass === settings.adminPassword) {
         sessionStorage.setItem("suji_admin_session", "logged_in");
         document.getElementById("lockErrorMsg").style.display = "none";
-        checkAdminSession();
+        await checkAdminSession();
       } else {
         document.getElementById("lockErrorMsg").style.display = "block";
       }
@@ -372,36 +374,36 @@
     }
 
     // --- 儀表板初始化與渲染 ---
-    function initializeDashboard() {
+    async function initializeDashboard() {
       // 1. 初始化客容量設定值
-      const settings = getSettings();
+      const settings = await getSettings();
       document.getElementById("settingsMaxCap").value = settings.maxCapacity;
       document.getElementById("kpiMaxCapText").textContent = settings.maxCapacity + " 人";
       
       // 2. 設定代客訂位預設日期為今日
       const todayStr = formatDate(new Date());
       document.getElementById("manualDate").value = todayStr;
-      updateManualTimeOptions();
+      await updateManualTimeOptions();
 
       // 3. 設定目前週起點為今日所在週的週一
       const days = getWeekDays(new Date());
       currentWeekStart = days[0];
 
       // 4. 渲染各個介面
-      renderAll();
+      await renderAll();
     }
 
-    function renderAll() {
-      renderKPIs();
-      renderWeeklyView();
-      renderBookingsTable();
-      renderTimeSettings();
-      renderHolidaysList();
+    async function renderAll() {
+      await renderKPIs();
+      await renderWeeklyView();
+      await renderBookingsTable();
+      await renderTimeSettings();
+      await renderHolidaysList();
     }
 
     // 渲染指標
-    function renderKPIs() {
-      const bookings = getBookings().filter(b => b.status !== "Cancelled");
+    async function renderKPIs() {
+      const bookings = (await getBookings()).filter(b => b.status !== "Cancelled");
       const todayStr = formatDate(new Date());
       
       // 今日訂位與用餐人數
@@ -424,13 +426,13 @@
     }
 
     // --- 按週瀏覽 (核心需求) ---
-    function navigateWeek(weeksDirection) {
+    async function navigateWeek(weeksDirection) {
       currentWeekStart.setDate(currentWeekStart.getDate() + weeksDirection * 7);
-      renderWeeklyView();
-      renderKPIs();
+      await renderWeeklyView();
+      await renderKPIs();
     }
 
-    function renderWeeklyView() {
+    async function renderWeeklyView() {
       const days = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(currentWeekStart);
@@ -446,12 +448,13 @@
       const grid = document.getElementById("weeklyDaysGrid");
       grid.innerHTML = "";
 
-      const allBookings = getBookings();
+      const allBookings = await getBookings();
       const weekDayNames = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"];
 
-      days.forEach((day, index) => {
+      for (let i = 0; i < 7; i++) {
+        const day = days[i];
         const dateStr = formatDate(day);
-        const isHoliday = isWeekendOrHoliday(dateStr);
+        const isHoliday = await isWeekendOrHoliday(dateStr);
         
         // 篩選當日訂位 (排除已取消，但顯示其它的以方便安排桌次)
         const dayBookings = allBookings.filter(b => b.date === dateStr && b.status !== "Cancelled");
@@ -466,7 +469,7 @@
         
         const dayName = document.createElement("div");
         dayName.className = "day-name";
-        dayName.textContent = weekDayNames[index] + (isHoliday ? " (休/假)" : "");
+        dayName.textContent = weekDayNames[i] + (isHoliday ? " (休/假)" : "");
         
         const dayDate = document.createElement("div");
         dayDate.className = "day-date";
@@ -505,12 +508,12 @@
         
         dayCol.appendChild(listDiv);
         grid.appendChild(dayCol);
-      });
+      }
     }
 
     // --- 訂位詳情彈窗 ---
-    function openBookingDetail(id) {
-      const bk = getBookings().find(b => b.id === id);
+    async function openBookingDetail(id) {
+      const bk = (await getBookings()).find(b => b.id === id);
       if (!bk) return;
 
       selectedBookingId = id;
@@ -530,19 +533,19 @@
       document.getElementById("detailModal").classList.add("active");
     }
 
-    function changeDetailStatus(newStatus) {
+    async function changeDetailStatus(newStatus) {
       if (selectedBookingId) {
-        updateBookingStatus(selectedBookingId, newStatus);
+        await updateBookingStatus(selectedBookingId, newStatus);
         closeModal("detailModal");
-        renderAll();
+        await renderAll();
       }
     }
 
-    function deleteDetailBooking() {
+    async function deleteDetailBooking() {
       if (selectedBookingId && confirm("⚠️ 您確定要將此預約徹底從系統中刪除嗎？刪除後將無法還原。")) {
-        deleteBooking(selectedBookingId);
+        await deleteBooking(selectedBookingId);
         closeModal("detailModal");
-        renderAll();
+        await renderAll();
       }
     }
 
@@ -551,11 +554,11 @@
     }
 
     // --- 表格清單渲染 ---
-    function renderBookingsTable() {
+    async function renderBookingsTable() {
       const keyword = document.getElementById("searchKeyword").value.trim().toLowerCase();
       const statusFilter = document.getElementById("filterStatus").value;
       
-      const bookings = getBookings();
+      const bookings = await getBookings();
       // 排序，近期的在上面
       bookings.sort((a,b) => new Date(b.date + "T" + b.time) - new Date(a.date + "T" + a.time));
 
@@ -606,8 +609,8 @@
     }
 
     // --- 營業時段設定管理 ---
-    function renderTimeSettings() {
-      const settings = getSettings();
+    async function renderTimeSettings() {
+      const settings = await getSettings();
       
       const lunchDiv = document.getElementById("lunchTimesList");
       lunchDiv.innerHTML = "";
@@ -640,7 +643,7 @@
       return badge;
     }
 
-    function addTimeSlot(type) {
+    async function addTimeSlot(type) {
       const inputId = type === 'lunch' ? 'newLunchTime' : 'newDinnerTime';
       const inputVal = document.getElementById(inputId).value.trim();
       
@@ -649,7 +652,7 @@
         return;
       }
 
-      const settings = getSettings();
+      const settings = await getSettings();
       const targetArray = type === 'lunch' ? settings.lunchSlots : settings.dinnerSlots;
       
       if (targetArray.includes(inputVal)) {
@@ -658,29 +661,39 @@
       }
 
       targetArray.push(inputVal);
-      saveSettings(settings);
-      document.getElementById(inputId).value = "";
-      renderTimeSettings();
-      renderWeeklyView();
+      const key = type === 'lunch' ? 'lunchSlots' : 'dinnerSlots';
+      const success = await updateSetting(key, targetArray);
+      
+      if (success) {
+        document.getElementById(inputId).value = "";
+        await renderTimeSettings();
+        await renderWeeklyView();
+      } else {
+        alert("新增時段失敗，請檢查資料庫連線。");
+      }
     }
 
-    function removeTimeSlot(time, type) {
+    async function removeTimeSlot(time, type) {
       if (confirm(`確定要刪除時段 ${time} 嗎？`)) {
-        const settings = getSettings();
-        if (type === 'lunch') {
-          settings.lunchSlots = settings.lunchSlots.filter(t => t !== time);
+        const settings = await getSettings();
+        let targetArray = type === 'lunch' ? settings.lunchSlots : settings.dinnerSlots;
+        targetArray = targetArray.filter(t => t !== time);
+        
+        const key = type === 'lunch' ? 'lunchSlots' : 'dinnerSlots';
+        const success = await updateSetting(key, targetArray);
+        
+        if (success) {
+          await renderTimeSettings();
+          await renderWeeklyView();
         } else {
-          settings.dinnerSlots = settings.dinnerSlots.filter(t => t !== time);
+          alert("刪除時段失敗，請檢查資料庫連線。");
         }
-        saveSettings(settings);
-        renderTimeSettings();
-        renderWeeklyView();
       }
     }
 
     // --- 假期管理 ---
-    function renderHolidaysList() {
-      const settings = getSettings();
+    async function renderHolidaysList() {
+      const settings = await getSettings();
       const container = document.getElementById("holidaysList");
       container.innerHTML = "";
       
@@ -701,79 +714,94 @@
       }
     }
 
-    function addCustomHoliday() {
+    async function addCustomHoliday() {
       const val = document.getElementById("newHolidayDate").value;
       if (!val) {
         alert("請選擇日期！");
         return;
       }
 
-      const settings = getSettings();
+      const settings = await getSettings();
       if (settings.holidays.includes(val)) {
         alert("該日期已設為假期！");
         return;
       }
 
       settings.holidays.push(val);
-      saveSettings(settings);
-      document.getElementById("newHolidayDate").value = "";
-      renderHolidaysList();
-      renderWeeklyView(); // 刷新週曆狀態
+      const success = await updateSetting('holidays', settings.holidays);
+      
+      if (success) {
+        document.getElementById("newHolidayDate").value = "";
+        await renderHolidaysList();
+        await renderWeeklyView(); // 刷新週曆狀態
+      } else {
+        alert("新增自訂假期失敗！");
+      }
     }
 
-    function removeCustomHoliday(dateStr) {
+    async function removeCustomHoliday(dateStr) {
       if (confirm(`確定要取消 ${dateStr} 的假期設定嗎？`)) {
-        const settings = getSettings();
+        const settings = await getSettings();
         settings.holidays = settings.holidays.filter(d => d !== dateStr);
-        saveSettings(settings);
-        renderHolidaysList();
-        renderWeeklyView();
+        const success = await updateSetting('holidays', settings.holidays);
+        
+        if (success) {
+          await renderHolidaysList();
+          await renderWeeklyView();
+        } else {
+          alert("刪除假期失敗！");
+        }
       }
     }
 
     // --- 設定修改 (最大容量與管理密碼) ---
-    function saveCapacitySetting() {
+    async function saveCapacitySetting() {
       const val = parseInt(document.getElementById("settingsMaxCap").value);
       if (isNaN(val) || val < 1) {
         alert("請輸入有效的正整數！");
         return;
       }
 
-      const settings = getSettings();
-      settings.maxCapacity = val;
-      saveSettings(settings);
-      
-      document.getElementById("kpiMaxCapText").textContent = val + " 人";
-      alert("每時段最大容量限制已更新！");
-      renderAll();
+      const success = await updateSetting('maxCapacity', val);
+      if (success) {
+        document.getElementById("kpiMaxCapText").textContent = val + " 人";
+        alert("每時段最大容量限制已更新！");
+        await renderAll();
+      } else {
+        alert("更新容量失敗，請檢查資料庫連線。");
+      }
     }
 
-    function savePasswordSetting() {
+    async function savePasswordSetting() {
       const val = document.getElementById("settingsPassword").value.trim();
       if (!val) {
         alert("請輸入密碼！");
         return;
       }
 
-      const settings = getSettings();
-      settings.adminPassword = val;
-      saveSettings(settings);
-      
-      document.getElementById("settingsPassword").value = "";
-      alert("管理員密碼更新成功！");
+      const success = await updateSetting('adminPassword', val);
+      if (success) {
+        document.getElementById("settingsPassword").value = "";
+        alert("管理員密碼更新成功！");
+      } else {
+        alert("更新管理密碼失敗。");
+      }
     }
 
-    function quickChangeCapacity() {
-      const settings = getSettings();
+    async function quickChangeCapacity() {
+      const settings = await getSettings();
       const newVal = prompt("請輸入新的同時間最大客容量上限：", settings.maxCapacity);
       if (newVal !== null) {
         const val = parseInt(newVal);
         if (!isNaN(val) && val >= 1) {
-          settings.maxCapacity = val;
-          saveSettings(settings);
-          document.getElementById("settingsMaxCap").value = val;
-          document.getElementById("kpiMaxCapText").textContent = val + " 人";
-          renderAll();
+          const success = await updateSetting('maxCapacity', val);
+          if (success) {
+            document.getElementById("settingsMaxCap").value = val;
+            document.getElementById("kpiMaxCapText").textContent = val + " 人";
+            await renderAll();
+          } else {
+            alert("更新失敗！");
+          }
         } else {
           alert("請輸入正確的數字！");
         }
@@ -781,14 +809,14 @@
     }
 
     // --- 電話手動訂位 ---
-    function updateManualTimeOptions() {
+    async function updateManualTimeOptions() {
       const dateVal = document.getElementById("manualDate").value;
       const select = document.getElementById("manualTime");
       select.innerHTML = "";
 
       if (!dateVal) return;
 
-      const slots = getAvailableSlotsForDate(dateVal);
+      const slots = await getAvailableSlotsForDate(dateVal);
       const all = [...slots.lunch, ...slots.dinner].sort();
 
       all.forEach(time => {
@@ -799,7 +827,7 @@
       });
     }
 
-    function submitManualBooking() {
+    async function submitManualBooking() {
       const name = document.getElementById("manualName").value.trim();
       const phone = document.getElementById("manualPhone").value.trim();
       const date = document.getElementById("manualDate").value;
@@ -819,10 +847,10 @@
       }
 
       const totalGuests = adults + kids;
-      const result = addBooking({
+      const result = await addBooking({
         name,
         phone,
-        email: "", // 電話預約預設不填 email
+        email: "",
         date,
         time,
         adults,
@@ -833,11 +861,10 @@
 
       if (result.success) {
         alert(`預約建立成功！訂位編號：${result.booking.id}`);
-        // 清空輸入
         document.getElementById("manualName").value = "";
         document.getElementById("manualPhone").value = "";
         document.getElementById("manualNotes").value = "";
-        renderAll();
+        await renderAll();
       } else {
         alert(result.message);
       }
